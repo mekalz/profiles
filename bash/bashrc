@@ -161,17 +161,17 @@ alias dr='docker run --rm -it'
 case $(uname -s) in
     Linux)
         alias ls='/bin/ls -F --color=auto'
-        alias l='/bin/ls -lF --color=auto'
+        alias l='/bin/ls -lhF --color=auto'
         alias lsps='ps -ef f | grep -vw grep | grep -i'
         ;;
     Darwin)
         alias ls='/bin/ls -F'
-        alias l='/bin/ls -lF'
+        alias l='/bin/ls -lhF'
         alias lsps='ps -ax -o user,pid,ppid,stime,tty,time,command | grep -vw grep | grep -i'
         ;;
     *)
         alias ls='/bin/ls -F'
-        alias l='/bin/ls -lF'
+        alias l='/bin/ls -lhF'
         alias lsps='ps -auf | grep -vw grep | grep -i'
         ;;
 esac
