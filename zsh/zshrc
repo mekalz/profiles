@@ -154,16 +154,22 @@ case $(uname -s) in
     Linux)
         alias ls='/bin/ls -F --color=auto'
         alias l='/bin/ls -lhF --color=auto'
+        alias ll='/bin/ls -lhF --color=auto'
+        alias lla='/bin/ls -lahF --color=auto'
         alias lsps='ps -ef f | grep -vw grep | grep -i'
         ;;
     Darwin)
         alias ls='/bin/ls -F'
         alias l='/bin/ls -lhF'
+        alias ll='/bin/ls -lhF'
+        alias lla='/bin/ls -lahF'
         alias lsps='ps -ax -o user,pid,ppid,stime,tty,time,command | grep -vw grep | grep -i'
         ;;
     *)
         alias ls='/bin/ls -F'
         alias l='/bin/ls -lhF'
+        alias ll='/bin/ls -lhF'
+        alias lla='/bin/ls -lahF'
         alias lsps='ps -auf | grep -vw grep | grep -i'
         ;;
 esac
