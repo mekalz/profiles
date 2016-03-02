@@ -105,6 +105,9 @@ function __git_active_branch() {
 #
 PROMPT="\$([[ \$? == 0 ]] && echo '${_DG}✔' || echo '${_DR}✘') %* "
 
+# Display current user's name
+PROMPT+="${_DY}$(whoami)${_NC}@"
+
 # Detect whether this box has my own ssh key (~/.ssh/$USER.key), distinguish
 # hostname color and setup ssh-agent related environment accordingly
 #
