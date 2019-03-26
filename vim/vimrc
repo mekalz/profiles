@@ -1,5 +1,7 @@
-" Matthew Wang's vimrc with plugin manager https://github.com/junegunn/vim-plug
+" Matt Wang's vimrc, see more at https://github.com/ymattw/profiles
 
+" Plugins managed by https://github.com/junegunn/vim-plug
+"
 if empty(glob('~/.vim/autoload/plug.vim'))
     echomsg "*** vim-plug is missing, see https://github.com/junegunn/vim-plug"
     finish
@@ -8,34 +10,45 @@ endif
 set nocompatible
 call plug#begin('~/.vim/plugged')
 
+" Put corp specific styles in separate private file
+if !filereadable(glob('~/.vim/corp-styles.vim'))
+    Plug 'hynek/vim-python-pep8-indent', {'for': 'python'}
+endif
+
 " No vim-polyglot, which has poor performance
 Plug 'tpope/vim-markdown', {'for': 'markdown'}
 Plug 'godlygeek/tabular', {'for': 'markdown'}
 Plug 'digitaltoad/vim-jade', {'for': 'jade'}
 Plug 'moll/vim-node', {'for': 'javascript'}
-Plug 'hynek/vim-python-pep8-indent', {'for': 'python'}
+Plug 'fatih/vim-go', {'for': 'go'}
 Plug 'Valloric/MatchTagAlways', {'for': 'html'}
+Plug 'tpope/vim-commentary'             " gcc, gc<textobj> to toggle comments
+Plug 'tpope/vim-endwise'
 Plug 'ymattw/vim-fold-paragraph'        " My own folding preference
 
 Plug 'elzr/vim-json', {'for': 'json'}
 let g:vim_json_syntax_conceal = 0       " Do not hide quotes
 
-" Load NERDTree on demand, 'gn' to toggle (see nmaps section)
-Plug 'scrooloose/nerdtree', {'on': 'NERDTreeToggle'}
-let g:NERDTreeQuitOnOpen = 1
+Plug 'mileszs/ack.vim'
+let g:ackprg = 'ag --vimgrep --smart-case'
+let g:ackhighlight = 1
+cnoreabbrev Ag Ack!
+cnoreabbrev ag Ack!
+cnoreabbrev Af AckFile!
+cnoreabbrev af AckFile!
 
-" YouCompleteMe is damn better, downsides: 1) install takes too long; 2) you
-" can't press C-U to remove text in completion mode, use C-W instead.  So keep
-" disabled by default.  Dependencies: cmake and python-dev[el].
+" neocomplete can beat YouCompleteMe in both functionality and installation
+" friendly, it also replaces supertab and AutoComplPop.  NOTE! to auto complete
+" in golang, install 'gocode' to work with 'vim-go'.  For example run this from
+" command line: GOPATH=~ vim a.go +GoInstallBinaries +qall
 "
-let s:_youcompleteme_on = 0
-if s:_youcompleteme_on && (version > 703 || version == 703 && has('patch598'))
-    Plug 'Valloric/YouCompleteMe', {'do': './install.py'}
-    let g:ycm_complete_in_comments = 1
-    let g:ycm_collect_identifiers_from_comments_and_strings = 1
-    let g:ycm_collect_identifiers_from_tags_files = 1
-    let g:ycm_seed_identifiers_with_syntax = 1
-    let g:ycm_autoclose_preview_window_after_completion = 1
+if has('lua')
+    Plug 'Shougo/neocomplete.vim'
+    let g:neocomplete#enable_at_startup = 1
+    let g:neocomplete#enable_smart_case = 1
+    let g:neocomplete#min_keyword_length = 3
+    let g:neocomplete#auto_completion_start_length = 1
+    inoremap <expr><Tab> pumvisible() ? "\<C-n>" : "\<Tab>"  " Tab completion
 else
     Plug 'ervandew/supertab'
     let g:SuperTabDefaultCompletionType = "context"
@@ -67,22 +80,35 @@ else
     set t_ti= t_te=                     " Prevent clear screen after exit
 endif
 
+" Override solarized setting to work with tmux config 'window-style'
+highlight! Normal ctermbg=none
+
 " Basic settings
 "
 set noswapfile nobackup                 " No tmp files
+set suffixes+=.a,.so,.la,.class,.pyc    " Ignore list for file completion
+set suffixes+=.jpg,.png,.gif,.pdf,.doc,.tar,.tgz,.gz,.bz2,.zip
+set wildignore+=.git,*.o,*.a,*.so,*.la  " Ignore list for wildmenu completion
+set wildignore+=*.class,*.pyc,*.swp
+set wildignore+=*.jpg,*.png,*.gif,*.pdf,*.doc
+set wildignore+=*.tar,*.gz,*.tgz,*.bz2,*.zip
 set incsearch smartcase ignorecase hls  " Searching
 set showmatch matchtime=2 scrolloff=4   " Interface
-set encoding=utf-8 textwidth=79         " Editing
+set encoding=utf-8 textwidth=80         " Editing
 set backspace=indent,eol,start          " Editing
+set comments-=:%                        " Do not let '%' lead a comment line
 set formatoptions=tcqron1MB             " Formatting, MB for multi-byte chars
 silent! set formatoptions+=j            " Vim >= 7.3.541 only
-set wildmode=list:full                  " Misc: complete and list matched files
+set wildmenu                            " Enhanced command-line completion
+set wildmode=longest:full,full          " Misc: complete and list matched files
+set wildcharm=<Tab>                     " So that to use <Tab> in nmap
 set isfname-==                          " Misc: '=' is not part of filename
 set matchpairs+=<:>                     " Misc: '%' can match <> pair in html
-set smarttab shiftround shiftwidth=4    " Tab behaviour
+set smarttab shiftround shiftwidth=4    " Tab: default behaviour
 set expandtab softtabstop=4 tabstop=8   " Tab: default to 4-space soft tab
 set smartindent autoindent copyindent   " Indenting
 set spelllang=en_us complete+=kspell    " Spell completion, see imap <C-K>
+set completeopt=menuone                 " Auto completion menu
 set synmaxcol=128 lazyredraw ttyfast    " Performance
 syntax sync minlines=50 maxlines=200    " Performance
 silent! set nowildignorecase            " Vim >= 7.3.072 only
@@ -90,7 +116,7 @@ silent! set nofileignorecase            " Vim >= 7.3.872 only
 silent! set nofoldenable                " Default off, often n/a in containder
 silent! set foldmethod=manual           " Work with ymattw/vim-fold-paragraph
 
-" Highlight invisible chars andt trailing spaces, also displays extend and
+" Highlight invisible chars and trailing spaces, also displays extend and
 " precede chars for nowrap mode.  Poor Windows users: switch to Mac/Linux or
 " use alternate chars such as >, _, . instead  (:h dig to see more)
 "
@@ -104,9 +130,10 @@ autocmd! BufEnter Gemfile,Berksfile,Thorfile,Vagrantfile setlocal filetype=ruby
 
 " File type tab size
 "
-autocmd! FileType html,ruby,eruby,yaml,json,javascript,jade
+autocmd! FileType html,css,ruby,eruby,yaml,json,javascript,jade
             \ setlocal expandtab softtabstop=2 shiftwidth=2
 autocmd! FileType make setlocal noexpandtab shiftwidth=8
+autocmd! FileType go setlocal noexpandtab shiftwidth=8 nolist
 autocmd! FileType gitcommit setlocal textwidth=72 spell
 
 " Better color for matched parenthesis
@@ -125,32 +152,30 @@ highlight! DiffText cterm=underline ctermfg=142 ctermbg=0
 " More colors suitable for Solarized dark background
 "
 highlight! link ColorColumn Search
-highlight! link CharAtCol80 WarningMsg
+highlight! link CharAtCol81 WarningMsg
 highlight! link SpecialChars ErrorMsg
-match CharAtCol80 /\%80v/               " Mark char at column 80 in red
-2match SpecialChars /\%xa0\|[“”‘’—]/    " Mark 'nbsp' copied from alternote
-                                        " and 'smartly' replaced chars
+match CharAtCol81 /\%81v/                       " Mark char at column 81 in red
+2match SpecialChars /\%xa0\|[“”‘’—]/            " nbsp & smartly replaced chars
 
 " Powerful statusline, underlined status line looks better with cursor line
 "
-set noruler laststatus=2                " No ruler, always show status line
-set stl=                                " Reset
-set stl+=\ %0*%n%*                      " Buffer number
-set stl+=\ %0*%f%*                      " Short pathname
-set stl+=\ %3*%m%*                      " Modified flag
-set stl+=\ %3*%r%*                      " Readonly flag
-set stl+=\ %1*[%{&ft}]%*                " File type
-set stl+=\ %1*%{&enc}%*                 " File encoding
-set stl+=\ %3*%{&ff=='dos'?'dos':''}%*  " Dos format flag
-set stl+=\ %3*%{&ic?'ic':'noic'}%*      " Ignorecase flag
-set stl+=\ %3*%{&et?'et:'.&sts:'noet:'.&ts}%*
-                                        " Expandtab and (soft)tabstop
-set stl+=\ %2*%{&hls?'hls':''}%*        " Highlight search flag
-set stl+=\ %2*%{&list?'list':''}%*      " List mode flag
-set stl+=\ %3*%{&paste?'paste':''}%*    " Paste mode flag
-set stl+=\ %0*%=%*                      " Start to align right
-set stl+=\ %0*%4l,%-2v%*                " Line and column info
-set stl+=\ %0*%3p%%%*                   " Line percentage
+set noruler laststatus=2                        " Always show status line
+set stl=                                        " Reset
+set stl+=\ %0*%n%*                              " Buffer number
+set stl+=\ %0*%f%*                              " Short pathname
+set stl+=\ %3*%m%*                              " Modified flag
+set stl+=\ %3*%r%*                              " Readonly flag
+set stl+=\ %1*[%{&ft}]%*                        " File type
+set stl+=\ %1*%{&enc}%*                         " File encoding
+set stl+=\ %3*%{&ff=='dos'?'dos':''}%*          " Dos format flag
+set stl+=\ %3*%{&ic?'ic':'noic'}%*              " Ignorecase flag
+set stl+=\ %3*%{&et?'et:'.&sts:'noet:'.&ts}%*   " Expandtab and (soft)tabstop
+set stl+=\ %2*%{&hls?'hls':''}%*                " Highlight search flag
+set stl+=\ %2*%{&list?'list':''}%*              " List mode flag
+set stl+=\ %3*%{&paste?'paste':''}%*            " Paste mode flag
+set stl+=\ %0*%=%*                              " Start to align right
+set stl+=\ %0*%4l,%-2v%*                        " Line and column info
+set stl+=\ %0*%3p%%%*                           " Line percentage
 highlight! User1 cterm=underline ctermfg=white
                \ gui=underline guibg=#ccc6b3 guifg=#fdf6e3
 highlight! User2 cterm=underline ctermfg=magenta
@@ -164,72 +189,94 @@ highlight! StatusLineNC cterm=underline ctermfg=grey
 
 " Global key maps. Make sure <BS> and <C-H> are different in terminal setting!
 "
-let mapleader = ","
+let mapleader = ' '
 
-" nmaps
-nmap <Space>    :set list!<CR>|         " Toggle list mode
-nmap <CR>       :set spell!<CR>|        " Toggle spell
-nmap <BS>       :set ic!<CR>|           " Toggle ignore case
-nmap <C-H>      :nohlsearch<CR>|        " Stop highlight search temporarily
-nmap <C-J>      <C-W>w|                 " Cycle to next window
-nmap <C-K>      :%s/[ \t]\+$//g<CR>|    " Remove trailing blank
-nmap <C-N>      :set nu!<CR>|           " Ctrl-n to toggle :set number
-nmap <C-P>      :set paste!<CR>|        " Ctrl-p to toggle paste mode
-nnoremap gn     :NERDTreeToggle<CR>|    " Toggle NERDTree window
-nmap -          :call ToggleFoldParagraph()<CR>|
-nmap _          :silent! set cursorline!<CR>
-nmap \|         :silent! set cursorcolumn!<CR>
-nmap \          %|                      " Jump to pairing char
-nmap q:         :q|                     " q: is boring
-nmap !!         :q!<CR>|                " Quit without saving
-nmap Q          vipgq|                  " Format current paragraph
-nmap qq         :q<CR>|                 " Quickly quit vim
-nmap <leader>\| :call ToggleColorColumn()<CR>
-nmap <leader><Tab>
-              \ :call ToggleTab()<CR>|  " Toggle hard/soft tab
-nmap <leader>2  :set et sts=2 sw=2<CR>| " Use 2-space indent
-nmap <leader>4  :set et sts=4 sw=4<CR>| " Use 4-space indent
-nmap <leader>w  :w<CR>|                 " Save 2 key strokes
-nmap <leader>r  :call RunMe()<CR>|      " Run current file
-nmap <C-a>      <Nop>|                  " Avoid accidental edit
+" Maps for normal mode
+nnoremap <CR>       :set spell!<CR>|        " Toggle spell
+nnoremap <BS>       :set ic!<CR>|           " Toggle ignore case
+nnoremap <C-A>      <Nop>|                  " Avoid accidental edit
+nnoremap <C-H>      :nohlsearch<CR>|        " Stop highlight search temporarily
+nnoremap <C-J>      <C-W>w|                 " Cycle to next window
+nnoremap <C-K>      :%s/[ \t]\+$//<CR>|     " Remove trailing blank
+nnoremap <C-N>      :set nu!<CR>|           " Ctrl-n to toggle :set number
+nnoremap <C-P>      :set paste!<CR>|        " Ctrl-p to toggle paste mode
+nnoremap <C-\>      :vsp <CR>:exec("tag ".expand("<cword>"))<CR>
+                                            " Ctrl-\ to open tag in vsplit
+nnoremap -          :call ToggleFoldParagraph()<CR>|
+nnoremap _          :silent! set cursorline!<CR>
+nnoremap \|         :silent! set cursorcolumn!<CR>
+nnoremap q:         :q|                     " q: is boring
+nnoremap !!         :q!<CR>|                " Quit without saving
+nnoremap Q          gqip|                   " Format current paragraph
+nnoremap qq         :q<CR>|                 " Quickly close current window
+nnoremap qa         :qa<CR>|                " Quickly close all windows
+nnoremap <leader>\| :call ToggleColorColumn()<CR>
+nnoremap <leader>2  :set et sts=2 sw=2<CR>| " Use 2-space indent
+nnoremap <leader>4  :set et sts=4 sw=4<CR>| " Use 4-space indent
+nnoremap <Leader>d  :cd %:h<CR>:pwd<CR>|    " Switch to dir of current file
+nnoremap <Leader>-  :cd -<CR>:pwd<CR>|      " Switch back to previous dir
+nnoremap <Leader>e  :tabedit |              " Quick tabedit new file
+nnoremap <Leader>E  :tabedit %:h/<Tab>|     " Quick tabedit file from same dir
+nnoremap <Leader>f  <C-w>gf|                " Open file under cursor in new tab
+nnoremap <Leader>h  :tabprevious<CR>|       " Preserved for tabs
+nnoremap <Leader>l  :tabnext<CR>|           " Use <C-J> to cycle in vsplits
+nnoremap <Leader>p  "+p|                    " Paste below from system clipboard
+nnoremap <Leader>P  "+P|                    " Paste above from system clipboard
+nnoremap <leader>q  :qall<CR>|              " Quickly quit vim
+nnoremap <leader>r  :call RunMe()<CR>|      " Run current file
+nnoremap <leader>s  :Ack! -w <cword><CR>|   " Quick search word under cursor
+nnoremap <Leader>t  <C-w><C-]><C-w>T|       " Open tag in new tab
+nnoremap <leader>w  :w<CR>|                 " Save 2 key strokes
+nnoremap <leader><CR>       :set wrap!<CR>
+nnoremap <leader><Space>    :set list!<CR>
+nnoremap <leader><Tab>      :call ToggleTab()<CR>
 
-" imaps
-imap <C-J>      <ESC>kJA|               " Join to prev line (undo auto wrap)
-inoremap <C-F>  <C-X><C-F>|             " Complete filename
-inoremap <C-K>  <C-X><C-K>|             " Complete spell from words
+" Maps for insert mode
+inoremap <C-J>      <ESC>kJA|               " Join to prev line (undo auto wrap)
+inoremap <C-A>      <C-O>I|                 " Emacs style Home
+inoremap <C-E>      <C-O>A|                 " Emacs style End
+inoremap <C-F>      <C-X><C-F>|             " Complete filename
+inoremap <C-K>      <C-X><C-K>|             " Complete spell from words
 
-" cmaps
-cmap w!!         w !sudo tee % > /dev/null
+" Maps for visual mode
+vnoremap <Leader>y  "+y|                    " Yank (copy) to system clipboard
+vnoremap <Leader>x  "+d|                    " Cut (delete) to system clipboard
+
+" Maps for command mode
+cnoremap w!!        w !sudo tee % > /dev/null
 
 " File type key mappings. (NOTE! Do not use autocmd! as it overwrites previous
 " definitions)
 "
-autocmd FileType markdown nmap <buffer> T
-              \ vip:Tabularize /\|<CR>| " Tabularize markdown tables
-autocmd FileType c,cpp,javascript,css nmap <buffer> <leader>c
-              \ I/* <ESC>A */<ESC>|     " Comment out current line with /* */
-autocmd FileType c,cpp,javascript,css nmap <leader>u
-              \ 0f*h3x$3x|              " Comment out /* */
-autocmd Filetype html nmap <buffer> %
-              \ :MtaJumpToOtherTag<CR>| " See MatchTagAlways
+autocmd FileType markdown   nnoremap <buffer> T
+            \ vip:Tabularize /\|<CR>|     " Tabularize markdown tables
+autocmd Filetype html       nnoremap <buffer> %
+            \ :MtaJumpToOtherTag<CR>|     " See MatchTagAlways
+autocmd FileType go         nnoremap <leader>t
+            \ <Plug>(go-def-tab)          " Open definition in new tab
 
 " Mode key mappings
 "
 if exists('&diff') && &diff
-    nmap qq :qa<CR>|                    " Close all windows
-    nmap <Up>   [c|                     " Previous change
-    nmap <Down> ]c|                     " Next change
-    nmap <Left> <C-w>h|                 " Left window
-    nmap <Right> <C-w>l|                " Right window
-    nnoremap <C-L> :diffupdate<CR>|     " Refresh diff
+    nnoremap qq         :qa<CR>|            " Close all windows
+    nnoremap <Up>       [c|                 " Previous change
+    nnoremap <Down>     ]c|                 " Next change
+    nnoremap <Left>     <C-w>h|             " Left window
+    nnoremap <Right>    <C-w>l|             " Right window
+    nnoremap <C-L>      :diffupdate<CR>|    " Refresh diff
+else
+    nnoremap <Up>       <C-w>k|             " Upper window
+    nnoremap <Down>     <C-w>j|             " Bottom window
+    nnoremap <Left>     :tabprevious<CR>|   " Left & right preserved for tabs
+    nnoremap <Right>    :tabnext<CR>|       " Use <C-J> to cycle in vsplits
 endif
 
 " Misc
 "
 let python_highlight_all = 1
 
-autocmd VimResized * :wincmd =          " Realign vim window size
-autocmd InsertLeave * set nopaste       " Saves a <C-P>
+autocmd VimResized * :wincmd =              " Realign vim window size
+autocmd InsertLeave * set nopaste           " Saves a <C-P>
 
 " Remember last cursor postion, :h last-position-jump
 set viminfo='10,\"10,<50,s10,%,h,f10
@@ -263,8 +310,8 @@ function! ToggleColorColumn()
     exe expr
 endfunction
 
-" Execute current file and pipe output to new window below, window height will
-" be 1/3 of the vim window size
+" Execute current file and pipe output to new scratch window below, window
+" height will be 1/3 of the vim window size
 "
 function! RunMe()
     let file = expand("%:p")
@@ -283,6 +330,8 @@ function! RunMe()
         let intepreter = "ruby"
     elseif file =~ '\.js'
         let intepreter = "node"
+    elseif file =~ '\.go'
+        let intepreter = "go run"
     elseif file =~ '\.pl'
         let intepreter = "perl"
     else
@@ -291,5 +340,9 @@ function! RunMe()
 
     exe ".!" . intepreter . " " . file
 endfunction
+
+if filereadable(glob('~/.vim/corp-styles.vim'))
+    source ~/.vim/corp-styles.vim
+endif
 
 " EOF
