@@ -10,5 +10,5 @@ readonly SELF_DIR=$(cd $(dirname $0) && pwd)
     exit 0
 }
 
-mkdir -p ~/.config/alacritty
-cp -a $SELF_DIR/*.toml ~/.config/alacritty/
+mkdir -p ~/.config/neovide
+cp -a $SELF_DIR/*.toml ~/.config/neovide/

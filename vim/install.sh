@@ -8,6 +8,9 @@ readonly TARGET_PLUG_DIR=~/.vim/autoload/plug.vim
 
 cp -p $SELF_DIR/vimrc ~/.vimrc
 
+mkdir -p ~/.vim
+cp -p $SELF_DIR/dictionary ~/.vim/
+
 [[ -f $TARGET_PLUG_DIR ]] || {
     echo "Installing vim-plug to $TARGET_PLUG_DIR"
     curl -fksSLo $TARGET_PLUG_DIR --create-dirs \

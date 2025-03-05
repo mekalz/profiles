@@ -10,18 +10,29 @@ endif
 set nocompatible
 call plug#begin('~/.vim/plugged')
 
-" Put corp specific styles in separate private file
-if !filereadable(glob('~/.vim/corp-styles.vim'))
-    Plug 'hynek/vim-python-pep8-indent', {'for': 'python'}
-else
-    " Experimental, only for corp internal use, related settings are in
-    " ~/.vim/corp-style.vim.
-    Plug 'prabirshrestha/vim-lsp'
-    Plug 'prabirshrestha/asyncomplete.vim'
-    Plug 'prabirshrestha/asyncomplete-lsp.vim'
+" LSP
+Plug 'prabirshrestha/vim-lsp'
+Plug 'prabirshrestha/asyncomplete.vim'
+Plug 'prabirshrestha/asyncomplete-lsp.vim'
+
+let g:lsp_async_completion = 1
+let g:lsp_diagnostics_float_insert_mode_enabled = 1
+let g:lsp_diagnostics_virtual_text_enabled = 1
+let g:lsp_diagnostics_virtual_text_prefix = '👈 '
+let g:lsp_diagnostics_virtual_text_align = 'after'
+let g:lsp_diagnostics_virtual_text_wrap = 'truncate'
+let g:lsp_diagnostics_virtual_text_padding_left = '4'
+let g:lsp_preview_max_height = 20
+
+" Default LSP server (pip install python-lsp-server)
+if executable('pylsp')
+    au User lsp_setup call lsp#register_server({
+        \ 'name': 'pylsp',
+        \ 'cmd': {server_info->['pylsp']},
+        \ 'allowlist': ['python'],
+        \ })
 endif
 
-" No vim-polyglot, which has poor performance
 Plug 'tpope/vim-markdown', {'for': 'markdown'}
 Plug 'godlygeek/tabular', {'for': 'markdown'}
 Plug 'digitaltoad/vim-jade', {'for': 'jade'}
@@ -44,28 +55,16 @@ cnoreabbrev af AckFile!
 
 " neocomplete can beat YouCompleteMe in both functionality and installation
 " friendly, it also replaces supertab and AutoComplPop.
-"
-if exists('g:asyncomplete_loaded')
-    " Automatically show completion options
-    let g:asyncomplete_auto_popup = 1
+if has('lua') && v:version < 802
+    Plug 'Shougo/neocomplete.vim'
+    let g:neocomplete#enable_at_startup = 1
+    let g:neocomplete#enable_smart_case = 1
+    let g:neocomplete#min_keyword_length = 3
+    let g:neocomplete#auto_completion_start_length = 1
+    inoremap <expr><Tab> pumvisible() ? "\<C-n>" : "\<Tab>"  " Tab completion
 else
-    if has('lua') && version < 802
-        Plug 'Shougo/neocomplete.vim'
-        let g:neocomplete#enable_at_startup = 1
-        let g:neocomplete#enable_smart_case = 1
-        let g:neocomplete#min_keyword_length = 3
-        let g:neocomplete#auto_completion_start_length = 1
-        inoremap <expr><Tab> pumvisible() ? "\<C-n>" : "\<Tab>"  " Tab completion
-    else
-        Plug 'ervandew/supertab'
-        let g:SuperTabDefaultCompletionType = "context"
-        let g:SuperTabContextDefaultCompletionType = "<c-n>"
-        let g:SuperTabNoCompleteAfter =
-            \ ['^', '\s', '[^-]>', "'", '[~`!@#$%^&*()+={},</?\"\[\]\|-]']
-
-        " With my own fix for #53 on bitbucket
-        Plug 'ymattw/AutoComplPop', {'branch': 'dev'}
-    endif
+    Plug 'skywind3000/vim-auto-popmenu'
+    let g:apc_enable_ft = {'*': 1}      " Enable for all filetypes
 endif
 
 " Remember to change terminal type to xterm-256color!
@@ -73,20 +72,23 @@ Plug 'altercation/vim-colors-solarized'
 
 call plug#end()
 
-" Default color and font tunings, needs to be after plug#end()
-silent! colorscheme solarized
-
 if has('gui_running')
     set background=light
     if has('gui_mac') || has('gui_macvim')
-        set guifont=Monaco:h13
+        set guifont=Monaco:h13          " Fallback
+        silent set guifont=AnonymicePro\ Nerd\ Font:h16
     elseif has('gui_gtk') || has('gui_gtk2')
         set guifont=Bitstream\ Vera\ Sans\ Mono\ 13
     endif
 else
+    set notermguicolors
     set background=dark
+    set mouse=
     set t_ti= t_te=                     " Prevent clear screen after exit
 endif
+
+" Default color and font tunings, needs to be after plug#end()
+silent! colorscheme solarized
 
 " Override solarized setting to work with tmux config 'window-style'
 highlight! Normal ctermbg=none
@@ -102,6 +104,11 @@ set wildignore+=*.jpg,*.png,*.gif,*.pdf,*.doc
 set wildignore+=*.tar,*.gz,*.tgz,*.bz2,*.zip
 set incsearch smartcase ignorecase hls  " Searching
 set showmatch matchtime=2 scrolloff=4   " Interface
+set guicursor=n-v-c-ci-sm:block         " Block shape for normal,visual,cmd,...
+set guicursor+=r-cr:hor20-blinkon500-blinkoff250-blinkwait250
+                                        " Horizental, blink for replace mode
+set guicursor+=i-o:block-blinkon500-blinkoff250-blinkwait250
+                                        " Block, blink for insert/pending
 set encoding=utf-8 textwidth=80         " Editing
 set backspace=indent,eol,start          " Editing
 set timeoutlen=2000 ttimeoutlen=100     " Waiting time for mappings and key code
@@ -111,14 +118,19 @@ silent! set formatoptions+=j            " Vim >= 7.3.541 only
 set wildmenu                            " Enhanced command-line completion
 set wildmode=longest:full,full          " Misc: complete and list matched files
 set wildcharm=<Tab>                     " So that to use <Tab> in nmap
+silent! set wildoptions+=pum            " Show matches in popup menu, 8.2.4325+
 set isfname-==                          " Misc: '=' is not part of filename
 set matchpairs+=<:>                     " Misc: '%' can match <> pair in html
 set smarttab shiftround shiftwidth=4    " Tab: default behaviour
 set expandtab softtabstop=4 tabstop=8   " Tab: default to 4-space soft tab
 set smartindent autoindent copyindent   " Indenting
-set spelllang=en_us complete+=kspell    " Spell completion, see imap <C-K>
-set completeopt=menuone                 " Auto completion menu
-set synmaxcol=128 lazyredraw ttyfast    " Performance
+set spelllang=en_us
+set dictionary+=~/.vim/dictionary       " For keyword completion
+set completeopt=menuone,noselect        " Auto completion menu
+set complete+=kspell                    " Spell completion, see imap <C-K>
+set complete+=k~/.vim/dictionary
+set complete-=.
+set synmaxcol=150 lazyredraw ttyfast    " Performance
 syntax sync minlines=50 maxlines=200    " Performance
 silent! set nowildignorecase            " Vim >= 7.3.072 only
 silent! set nofileignorecase            " Vim >= 7.3.872 only
@@ -128,17 +140,14 @@ silent! set foldmethod=manual           " Work with ymattw/vim-fold-paragraph
 " Highlight invisible chars and trailing spaces, also displays extend and
 " precede chars for nowrap mode.  Poor Windows users: switch to Mac/Linux or
 " use alternate chars such as >, _, . instead  (:h dig to see more)
-"
 set list listchars=tab:▸\ ,trail:▌,extends:»,precedes:«
 
 " File type detect
-"
 autocmd! BufEnter *[Mm]akefile*,[Mm]ake.*,*.mak,*.make setlocal filetype=make
 autocmd! BufEnter *.md,*.markdown setlocal filetype=markdown spell
 autocmd! BufEnter Gemfile,Berksfile,Thorfile,Vagrantfile setlocal filetype=ruby
 
 " File type tab size
-"
 autocmd! FileType html,css,ruby,eruby,yaml,json,javascript,jade
             \ setlocal expandtab softtabstop=2 shiftwidth=2
 autocmd! FileType make setlocal noexpandtab shiftwidth=8
@@ -152,22 +161,19 @@ highlight! MatchParen cterm=underline ctermfg=7 ctermbg=0
 highlight! Folded cterm=bold ctermfg=10 ctermbg=0
 
 " Better color for Solarized theme in diff mode
-"
 highlight! DiffDelete ctermfg=10 ctermbg=0
 highlight! DiffAdd cterm=bold ctermfg=70 ctermbg=0
 highlight! DiffChange cterm=bold ctermfg=142 ctermbg=0
 highlight! DiffText cterm=underline ctermfg=142 ctermbg=0
 
 " More colors suitable for Solarized dark background
-"
 highlight! link ColorColumn Search
 highlight! link CharAtCol81 WarningMsg
 highlight! link SpecialChars ErrorMsg
 match CharAtCol81 /\%81v/                       " Mark char at column 81 in red
 2match SpecialChars /\%xa0\|[“”‘’—]/            " nbsp & smartly replaced chars
 
-" Powerful statusline, underlined status line looks better with cursor line
-"
+" Statusline, underlined status line looks better with cursor line
 set noruler laststatus=2                        " Always show status line
 set stl=                                        " Reset
 set stl+=\ %0*%n%*                              " Buffer number
@@ -197,11 +203,9 @@ highlight! StatusLineNC cterm=underline ctermfg=grey
                \ gui=underline guibg=#eee8d5
 
 " Global key maps. Make sure <BS> and <C-H> are different in terminal setting!
-"
 let mapleader = ' '
 
 " Maps for normal mode
-nnoremap <CR>       :set spell!<CR>|        " Toggle spell
 nnoremap <BS>       :set ic!<CR>|           " Toggle ignore case
 nnoremap <C-A>      <Nop>|                  " Avoid accidental edit
 nnoremap <C-H>      :nohlsearch<CR>|        " Stop highlight search temporarily
@@ -213,6 +217,7 @@ nnoremap <C-\>      :vsp <CR>:exec("tag ".expand("<cword>"))<CR>
                                             " Ctrl-\ to open tag in vsplit
 nnoremap -          :call ToggleFoldParagraph()<CR>|
 nnoremap _          :silent! set cursorline!<CR>
+nnoremap \          :set list!<CR>
 nnoremap \|         :silent! set cursorcolumn!<CR>
 nnoremap q:         :q|                     " q: is boring
 nnoremap !!         :q!<CR>|                " Quit without saving
@@ -232,15 +237,11 @@ nnoremap <Leader>E  :tabedit %:h/<Tab>|     " Quick tabedit file from same dir
 nnoremap <Leader>f  <C-w>gf|                " Open file under cursor in new tab
 nnoremap <Leader>h  :tabprevious<CR>|       " Previous tab
 nnoremap <Leader>l  :tabnext<CR>|           " Next tab
-nnoremap <Leader>p  "+p|                    " Paste below from system clipboard
-nnoremap <Leader>P  "+P|                    " Paste above from system clipboard
 nnoremap <leader>q  :qall<CR>|              " Quickly quit vim
-nnoremap <leader>r  :call RunMe()<CR>|      " Run current file
 nnoremap <leader>s  :Ack! -w <cword><CR>|   " Quick search word under cursor
 nnoremap <Leader>t  <C-w><C-]><C-w>T|       " Open tag in new tab
 nnoremap <leader>w  :w<CR>|                 " Save 2 key strokes
 nnoremap <leader><CR>       :set wrap!<CR>
-nnoremap <leader><Space>    :set list!<CR>
 nnoremap <leader><Tab>      :call ToggleTab()<CR>
 
 " Maps for insert mode
@@ -249,27 +250,45 @@ inoremap <C-A>      <C-O>I|                 " Emacs style Home
 inoremap <C-E>      <C-O>A|                 " Emacs style End
 inoremap <C-F>      <C-X><C-F>|             " Complete filename
 inoremap <C-K>      <C-X><C-K>|             " Complete spell from words
-inoremap jj         <ESC>|                  " Work around fucking Mac touch bar
 
-" Maps for visual mode
-vnoremap <Leader>y  "+y|                    " Yank (copy) to system clipboard
-vnoremap <Leader>x  "+d|                    " Cut (delete) to system clipboard
+if executable('ydiff')
+  nnoremap <leader>y :!ydiff %<CR>
+  nnoremap <leader>Y :!ydiff<CR>
+endif
 
 " Maps for command mode
 cnoremap w!!        w !sudo tee % > /dev/null
 
-" File type key mappings. (NOTE! Do not use autocmd! as it overwrites previous
-" definitions)
-"
+" LSP mappings
+function! s:on_lsp_buffer_enabled() abort
+    setlocal omnifunc=lsp#complete
+    setlocal signcolumn=auto
+    if exists('+tagfunc') | setlocal tagfunc=lsp#tagfunc | endif
+    nnoremap <buffer> <leader>d       :LspPeekDefinition<CR>
+    nnoremap <buffer> <leader>D       :LspDefinition<CR>
+    nnoremap <buffer> <leader><Space> :LspHover<CR>
+    nnoremap <buffer> <leader>i       :LspPeekImplementation<CR>
+    nnoremap <buffer> <leader>I       :LspImplementation<CR>
+    nnoremap <buffer> <leader>r       :LspReferences<CR>
+    nnoremap <buffer> <leader>j       :cnext<CR>
+    nnoremap <buffer> <leader>k       :cprevious<CR>
+    nnoremap <buffer> <leader>t       :LspPeekTypeDefinition<CR>
+    nnoremap <buffer> <leader>T       :LspTypeDefinition<CR>
+endfunction
+
+augroup lsp_install
+    autocmd!
+    " Call only for languages that has the server registered.
+    autocmd User lsp_buffer_enabled call s:on_lsp_buffer_enabled()
+augroup END
+
+" File type key mappings.
 autocmd FileType markdown   nnoremap <buffer> T
             \ vip:Tabularize /\|<CR>|     " Tabularize markdown tables
 autocmd Filetype html       nnoremap <buffer> %
             \ :MtaJumpToOtherTag<CR>|     " See MatchTagAlways
-autocmd FileType go         nnoremap <leader>t
-            \ <Plug>(go-def-tab)          " Open definition in new tab
 
 " Mode key mappings
-"
 if exists('&diff') && &diff
     nnoremap qq         :qa<CR>|            " Close all windows
     nnoremap <Up>       [c|                 " Previous change
@@ -290,6 +309,14 @@ let python_highlight_all = 1
 
 autocmd VimResized * :wincmd =              " Realign vim window size
 autocmd InsertLeave * set nopaste           " Saves a <C-P>
+
+" Not for quickfix buffer
+autocmd! BufWinEnter *
+    \ if &buftype == 'quickfix' |
+    \     silent! nunmap <CR>|
+    \ else |
+    \     nnoremap <buffer> <CR> :set spell!<CR>|
+    \ endif
 
 " Remember last cursor postion, :h last-position-jump
 set viminfo='10,\"10,<50,s10,%,h,f10
@@ -312,7 +339,6 @@ command! -nargs=* -complete=shellcmd R new
     \ | r !<args>
 
 " Helper functions
-"
 function! ToggleTab()
     let expr = &et == 1 ? "setl noet sw=8" : "setl et sw=".&sts
     exe expr
@@ -323,39 +349,6 @@ function! ToggleColorColumn()
     exe expr
 endfunction
 
-" Execute current file and pipe output to new scratch window below, window
-" height will be 1/3 of the vim window size
-"
-function! RunMe()
-    let file = expand("%:p")
-    let line = getline(1)
+" Other customization can be put in ~/.vim/after/plugin/ to be loaded the last.
 
-    exe "botright " . (&lines / 3) . " new"
-        \ | setlocal buftype=nofile bufhidden=hide
-
-    if line =~ "^#!"
-        let intepreter = line[2:]
-    elseif file =~ '\.sh\|\.bash'
-        let intepreter = "bash"
-    elseif file =~ '\.py'
-        let intepreter = "python"
-    elseif file =~ '\.rb'
-        let intepreter = "ruby"
-    elseif file =~ '\.js'
-        let intepreter = "node"
-    elseif file =~ '\.go'
-        let intepreter = "go run"
-    elseif file =~ '\.pl'
-        let intepreter = "perl"
-    else
-        let intepreter = ""
-    endif
-
-    exe ".!" . intepreter . " " . file
-endfunction
-
-if filereadable(glob('~/.vim/corp-styles.vim'))
-    source ~/.vim/corp-styles.vim
-endif
-
-" EOF
+" vim:set et sts=4 sw=4:
