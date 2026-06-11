@@ -113,9 +113,12 @@ vim.api.nvim_create_autocmd("FileType", {
     "html",
     "jade",
     "javascript",
+    "javascriptreact",
     "json",
     "lua",
     "ruby",
+    "typescript",
+    "typescriptreact",
     "yaml",
   },
   callback = function()
@@ -132,6 +135,10 @@ vim.api.nvim_create_autocmd("FileType", {
     vim.opt_local.shiftwidth = 8
     vim.opt_local.list = false
     vim.opt_local.textwidth = 0
+    -- Reset these to make gq able to format comments
+    vim.opt_local.formatexpr = nil
+    vim.opt_local.formatprg = nil
+    vim.opt_local.formatoptions = "tcqron1MBj"
     -- Trigger OptionSet event manually
     vim.api.nvim_exec_autocmds("OptionSet", { pattern = "textwidth" })
 
@@ -153,20 +160,27 @@ vim.api.nvim_create_autocmd("FileType", {
   end,
 })
 
--- Settings for firenvim
-if vim.fn.has("mac") then
-  vim.api.nvim_create_autocmd({ "UIEnter" }, {
-    callback = function(event)
-      local client = vim.api.nvim_get_chan_info(vim.v.event.chan).client
-      if client ~= nil and client.name == "Firenvim" then
-        vim.opt_local.spell = true
-        if vim.opt.lines:get() < 15 then
-          vim.opt.lines = 15
-        end
-        if vim.opt.columns:get() < 80 then
-          vim.opt.columns = 80
-        end
-      end
-    end,
-  })
-end
+-- Show diagnostics automatically on hover
+-- NOTE: updatetime controls CursorHold, which dictates the delay for BOTH the
+-- diagnostic hover popup and the LSP documentHighlight under cursor.
+vim.opt.updatetime = 500 -- Millisecond
+vim.api.nvim_create_autocmd("CursorHold", {
+  callback = function()
+    if vim.bo.buftype ~= "" then
+      return
+    end
+
+    local cursor = vim.api.nvim_win_get_cursor(0)
+    local diagnostics = vim.diagnostic.get(0, {
+      lnum = cursor[1] - 1,
+    })
+    if vim.tbl_isempty(diagnostics) then
+      return
+    end
+
+    vim.diagnostic.open_float(nil, {
+      focusable = false,
+      scope = "cursor",
+    })
+  end,
+})

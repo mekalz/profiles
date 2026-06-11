@@ -17,9 +17,16 @@
 -- }
 
 local formatters_by_ft = {
+  css = { "prettier" },
   go = { "gofmt" },
+  html = { "prettier" },
+  javascript = { "prettier" },
+  javascriptreact = { "prettier" },
   lua = { "stylua" },
   python = { "pyink" },
+  rust = { "rustfmt" },
+  typescript = { "prettier" },
+  typescriptreact = { "prettier" },
 }
 
 local formatters = {}

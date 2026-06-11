@@ -5,7 +5,7 @@ set -o nounset
 
 readonly SELF_DIR=$(cd $(dirname $0) && pwd)
 
-[[ $(uname -s) == Darwin ]] || {
+[[ $OSTYPE == darwin* ]] || {
     echo "Skipped (not on macOS)"
     exit 0
 }
@@ -41,6 +41,9 @@ defaults write com.apple.dock autohide-time-modifier -float 0 && killall Dock
 #
 # Make key repeat work in browser
 defaults write -g ApplePressAndHoldEnabled -bool false
+# Set a blazingly fast keyboard repeat rate
+defaults write NSGlobalDomain KeyRepeat -int 1
+defaults write NSGlobalDomain InitialKeyRepeat -int 15
 
 # Disable the chime when your laptop is plugged in with command
 defaults write com.apple.PowerChime ChimeOnAllHardware -bool false && killall PowerChime

@@ -4,8 +4,6 @@ return {
   event = { "BufReadPre", "BufNewFile" },
   dependencies = {
     "hrsh7th/cmp-nvim-lsp",
-    "williamboman/mason.nvim",
-    "williamboman/mason-lspconfig.nvim",
   },
   keys = {
     {
@@ -20,21 +18,16 @@ return {
     },
     {
       "[d",
-      "<cmd>lua if vim.diagnostic.jump then vim.diagnostic.jump()(-1) else vim.diagnostic.goto_prev() end<cr>",
+      "<cmd>lua if vim.diagnostic.jump then vim.diagnostic.jump({ count = -1 }) else vim.diagnostic.goto_prev() end<cr>",
       desc = "Goto previous diagnostic",
     },
     {
       "]d",
-      "<cmd>lua if vim.diagnostic.jump then vim.diagnostic.jump()(1) else vim.diagnostic.goto_next() end<cr>",
+      "<cmd>lua if vim.diagnostic.jump then vim.diagnostic.jump({ count = 1 }) else vim.diagnostic.goto_next() end<cr>",
       desc = "Goto next diagnostic",
     },
   },
   config = function()
-    require("mason").setup()
-    require("mason-lspconfig").setup({
-      ensure_installed = { "gopls", "pylsp", "lua_ls" },
-    })
-
     local lspconfig = require("lspconfig")
     local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
@@ -43,6 +36,23 @@ return {
       -- LSP offered documentFormattingProvider is often not desired
       if client.server_capabilities.documentFormattingProvider then
         vim.bo[bufnr].formatexpr = nil
+      end
+
+      -- Enable native document highlighting
+      if client.server_capabilities.documentHighlightProvider then
+        local group = vim.api.nvim_create_augroup("LSPDocumentHighlight", { clear = false })
+        vim.api.nvim_clear_autocmds({ buffer = bufnr, group = group })
+
+        vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
+          buffer = bufnr,
+          group = group,
+          callback = vim.lsp.buf.document_highlight,
+        })
+        vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
+          buffer = bufnr,
+          group = group,
+          callback = vim.lsp.buf.clear_references,
+        })
       end
     end
 
@@ -75,6 +85,31 @@ return {
     lspconfig.pylsp.setup({
       capabilities = capabilities,
       on_attach = on_attach,
+    })
+
+    lspconfig.rust_analyzer.setup({
+      capabilities = capabilities,
+      on_attach = on_attach,
+      settings = {
+        ["rust-analyzer"] = {
+          diagnostics = {
+            enable = true,
+          },
+          cargo = {
+            allFeatures = true,
+          },
+          procMacro = {
+            enable = true,
+          },
+        },
+      },
+    })
+
+    lspconfig.ts_ls.setup({
+      capabilities = capabilities,
+      on_attach = on_attach,
+      filetypes = { "typescript", "typescriptreact", "javascript", "javascriptreact" },
+      cmd = { "typescript-language-server", "--stdio" },
     })
   end,
 }

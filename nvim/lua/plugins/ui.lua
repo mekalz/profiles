@@ -49,6 +49,7 @@ return {
   -- git sign
   {
     "lewis6991/gitsigns.nvim",
+    event = { "BufReadPre", "BufNewFile" },
     opts = {},
   },
 
@@ -56,16 +57,10 @@ return {
   {
     "lukas-reineke/indent-blankline.nvim",
     main = "ibl",
+    event = { "BufReadPre", "BufNewFile" },
     opts = {
       scope = { show_start = false, show_end = false },
     },
-  },
-
-  -- For editing textarea in Chrome/Edge, macOS only
-  {
-    "glacambre/firenvim",
-    enabled = vim.fn.has("mac") == 1,
-    build = ":call firenvim#install(0)",
   },
 
   -- help remember keymaps

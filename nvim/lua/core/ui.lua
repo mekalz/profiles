@@ -9,6 +9,19 @@ vim.opt.listchars = { tab = "▸ ", trail = "▌", extends = "»", precedes = "�
 vim.opt.synmaxcol = 150
 vim.opt.lazyredraw = true
 
+-- Override pbcopy and force OSC 52
+vim.g.clipboard = {
+  name = "OSC 52",
+  copy = {
+    ["+"] = require("vim.ui.clipboard.osc52").copy("+"),
+    ["*"] = require("vim.ui.clipboard.osc52").copy("*"),
+  },
+  paste = {
+    ["+"] = require("vim.ui.clipboard.osc52").paste("+"),
+    ["*"] = require("vim.ui.clipboard.osc52").paste("*"),
+  },
+}
+
 if vim.g.neovide then
   vim.o.guifont = "AnonymicePro Nerd Font:h16"
   vim.opt.mouse = "a"
@@ -56,9 +69,6 @@ vim.opt.shiftwidth = 4
 vim.opt.expandtab = true
 vim.opt.softtabstop = 4
 vim.opt.tabstop = 8
-vim.opt.smartindent = true
-vim.opt.autoindent = true
-vim.opt.copyindent = true
 
 -- Indentation
 vim.opt.smartindent = true
@@ -114,4 +124,22 @@ vim.opt.wildignore:append({
   "*.tgz",
   "*.bz2",
   "*.zip",
+})
+
+-- Lightweight Todo highlighting (you don't need folke/todo-comments.nvim).
+local function setup_todo_highlights()
+  for _, match in ipairs(vim.fn.getmatches()) do
+    if match.group:match("^Todo") then
+      pcall(vim.fn.matchdelete, match.id)
+    end
+  end
+  vim.fn.matchadd("TodoNote", [[\C\<\(NOTE\|INFO\)\>]])
+  vim.fn.matchadd("TodoTodo", [[\C\<\(TODO\)\>]])
+  vim.fn.matchadd("TodoHack", [[\C\<\(HACK\|XXX\)\>]])
+  vim.fn.matchadd("TodoWarn", [[\C\<\(WARN\|WARNING\)\>]])
+  vim.fn.matchadd("TodoFixme", [[\C\<\(FIXME\|BUG\|ERROR\)\>]])
+end
+
+vim.api.nvim_create_autocmd({ "WinEnter", "BufEnter" }, {
+  callback = setup_todo_highlights,
 })
